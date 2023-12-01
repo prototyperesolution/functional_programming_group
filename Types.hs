@@ -1,7 +1,8 @@
 module Types (
     Entry(..),
     Fighter(..),
-    Record(..)
+    Record(..),
+    Upcoming(..)
 ) where
 
 import GHC.Generics
@@ -22,3 +23,5 @@ data Record = Record {
     losses :: Int,
     elo_rating :: Int
 } deriving (Show)
+
+data Upcoming  x = Null | Upcoming x
