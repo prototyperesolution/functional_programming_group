@@ -1,27 +1,29 @@
 module Types (
     Entry(..),
     Fighter(..),
-    Record(..),
-    Upcoming(..)
+    Event(..)
 ) where
 
 import GHC.Generics
 
+-- web scraping data
 data Entry = Entry {
     url_ :: String,
     processed_ :: Bool
 } deriving (Show)
 
+-- fighter details
 data Fighter = Fighter {
     first_name :: String,
-    last_name :: String
-    -- age
-} deriving (Show)
-
-data Record = Record {
+    last_name :: String,
     wins :: Int,
     losses :: Int,
     elo_rating :: Int
 } deriving (Show)
 
-data Upcoming  x = Null | Upcoming x
+-- fighters have many to many relationship to fight dates
+type Date = (Int, Int, Int)
+data Event = Event {
+    fightDate :: [Date]
+} deriving (Show)
+
