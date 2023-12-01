@@ -22,12 +22,10 @@ data Fighter = Fighter {
 } deriving (Show)
 
 -- fighters have many to many relationship to fight events
-
 type Date = (Int, Int, Int)
 data Event = Event {
     fightDate :: [Date],
     fighterA :: Fighter,
     fighterB :: Fighter
-
 } deriving (Show)
 
