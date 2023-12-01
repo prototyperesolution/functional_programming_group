@@ -1,6 +1,8 @@
-module Main (main) where
+module Main where
 
-import Lib
+import Database.SQLite.Simple
+import Database
 
-main :: IO ()
-main = someFunc
+main = do
+    conn <- dbConnection
+    close conn
