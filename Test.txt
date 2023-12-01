@@ -1,1 +1,1 @@
-second test
+This is an example file to try things in.
