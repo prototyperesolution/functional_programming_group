@@ -21,9 +21,13 @@ data Fighter = Fighter {
     elo_rating :: Int
 } deriving (Show)
 
--- fighters have many to many relationship to fight dates
+-- fighters have many to many relationship to fight events
+
 type Date = (Int, Int, Int)
 data Event = Event {
-    fightDate :: [Date]
+    fightDate :: [Date],
+    fighterA :: Fighter,
+    fighterB :: Fighter
+
 } deriving (Show)
 
