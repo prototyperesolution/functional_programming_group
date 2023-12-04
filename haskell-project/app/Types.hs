@@ -6,7 +6,6 @@ module Types (
     Fighter (..),
     Event (..),
     Record (..),
-    Language(..),
     FResults(..),
     Fighter_Bio(..)
 ) where
@@ -19,21 +18,14 @@ data FResults = FResults{
     results :: [Fighter]
 } deriving (Show, Generic)
 
-
-data Language = Language{
-    code :: Text,
-    lname :: Text
-} deriving (Show, Generic)
-instance FromJSON Language
-
 data Fighter_Bio = Fighter_Bio{
-    status :: Text
+    status :: Maybe Text
 } deriving (Show, Generic)
 
 data Record = Record{
-    wins :: Text,
-    losses :: Text,
-    draws :: Text
+    wins :: Maybe Text,
+    losses :: Maybe Text,
+    draws :: Maybe Text
 } deriving (Show, Generic)
 
 
@@ -41,15 +33,15 @@ data Record = Record{
 data Fighter = Fighter{
     name :: Text,
     nickname :: Text,
-    division :: Text,
+    division :: Maybe Text,
     record :: Record,
     bio :: Fighter_Bio,
-    strikes_landed :: Text,
-    strikes_attempted :: Text,
-    takedowns_landed :: Text,
-    takedowns_attempted :: Text,
-    striking_accuracy :: Text,
-    takedown_accuracy :: Text
+    strikes_landed :: Maybe Text,
+    strikes_attempted :: Maybe Text,
+    takedowns_landed :: Maybe Text,
+    takedowns_attempted :: Maybe Text,
+    striking_accuracy :: Maybe Text,
+    takedown_accuracy :: Maybe Text
 } deriving (Show, Generic)
  
 
