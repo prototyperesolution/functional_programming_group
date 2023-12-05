@@ -14,21 +14,11 @@ import Data.List
 import Data.Aeson.Lens (key)
 import Control.Monad (forM_)
 
-import Data.Aeson (Value)
+import Data.Aeson (Value)	
 
---presentFighterDetails :: Text -> [Fighter] -> IO()
---presentFighterDetails selection fighters = do
---	case selection of
-	
-
-extractFighterList :: Either String FResults -> IO [Fighter]
-extractFighterList parseResults = do
-	case parseResults of
-		(Left _) -> do
-			T.putStrLn "No fighters with that name found"
-			return []
-		(Right res) -> do
-			return (results res)
+extractFighterList :: Either String FResults -> [Fighter]
+extractFighterList (Left _) = []
+extractFighterList (Right res) = results res
 
 fighter_mode :: IO ()
 fighter_mode = do
@@ -36,7 +26,7 @@ fighter_mode = do
 	finput <- pack <$> getLine
 	r <- fighter_query finput
 	let x = parseResults r
-	fighters <- extractFighterList x
+	let fighters = extractFighterList x
 	presentFighterResults fighters
 	T.putStrLn "For further information on a specific fighter, enter \'f\' followed by the corresponding number"
 	T.putStrLn "To search for a different fighter, press s"
@@ -48,7 +38,9 @@ fighter_mode = do
 presentFighterResults :: [Fighter] -> IO ()
 presentFighterResults fighters = do
     case fighters of 
-    	[] -> fighter_mode
+    	[] -> do
+    		T.putStrLn("No fighters found with that name")
+    		fighter_mode
     	_ -> do
 		    let nums = [1..length fighters]
 		    forM_ (zip fighters nums) $ \(x,y) -> do
