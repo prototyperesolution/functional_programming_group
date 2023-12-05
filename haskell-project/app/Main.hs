@@ -16,6 +16,8 @@ import Control.Monad (forM_)
 
 import Data.Aeson (Value)	
 
+--testing branch
+
 extractFighterList :: Either String FResults -> [Fighter]
 extractFighterList (Left _) = []
 extractFighterList (Right res) = results res

@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+
 module Fetch (fighter_query) where
 
 import Types
