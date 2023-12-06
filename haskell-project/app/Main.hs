@@ -16,11 +16,14 @@ import Control.Monad (forM_)
 
 import Data.Aeson (Value)	
 
---testing branch
 
 extractFighterList :: Either String FResults -> [Fighter]
 extractFighterList (Left _) = []
 extractFighterList (Right res) = results res
+
+extractEventList :: Either String Events -> [Event]
+extractEventList (Left _) = []
+extractEventList (Right res) = events res
 
 fighter_mode :: IO ()
 fighter_mode = do
@@ -30,11 +33,22 @@ fighter_mode = do
 	let x = parseResults r
 	let fighters = extractFighterList x
 	presentFighterResults fighters
-	T.putStrLn "For further information on a specific fighter, enter \'f\' followed by the corresponding number"
-	T.putStrLn "To search for a different fighter, press s"
+	T.putStrLn "For further information on a specific fighter, enter the corresponding number"
+	T.putStrLn "To search for a different fighter, press \'s\'"
 	T.putStrLn "To return to the main menu, press \'m\'"
 	finput <- pack <$> getLine
+	case finput of
+		"m" -> main
+		"s" -> fighter_mode
+
+event_mode :: IO ()
+event_mode = do
+	e <- event_query
+	let x = parseEvents e
+	let events = extractEventList x
+	presentEvents events
 	main
+
 	
 
 presentFighterResults :: [Fighter] -> IO ()
@@ -52,6 +66,31 @@ presentFighterResults fighters = do
 		            _ -> T.putStr (" Nickname: " <> (nickname x))
 		        T.putStrLn "\n"
 
+presentEvents :: [Event] -> IO ()
+presentEvents events = do
+    case events of
+        [] -> do
+            T.putStrLn("No upcoming events found")
+            main
+        _ -> do
+        	let nums = [1..length events]
+        	forM_ (zip events nums) $ \(x,y) -> do
+        		T.putStrLn (pack (show y) <> " " <> (home x) <> " vs " <> (away x))
+        		T.putStrLn ("Date/Time: "<> (starts x))
+        		T.putStrLn ("Odds (Via pinnacle odds API) ")
+        		let ml = money_line (num_0 (periods x))
+        		case ml of
+        			Nothing -> T.putStrLn "No odds available \n"
+        			(Just y) -> do
+        				T.putStr((home x) <> ": " <> pack (show (homebet y)) <> " ")
+        				T.putStr((away x) <> ": " <> pack (show (awaybet y)))
+        				T.putStrLn("\n")
+
 main :: IO ()
 main = do
-	fighter_mode
+	T.putStrLn "Select option: 1. for fighter search 2. for event search 3. for fighter comparison"
+	input <- pack <$> getLine
+	case input of
+		"1" -> fighter_mode
+		"2" -> event_mode
+		"3" -> main

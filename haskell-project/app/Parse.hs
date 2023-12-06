@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Parse (parseResults) where
+module Parse (parseResults, parseEvents) where
 
 import Data.List
 import Types
@@ -30,6 +30,10 @@ renameFields "draws" = "Draws"
 
 --renaming the fields for the bio type
 renameFields "status" = "Status"
+
+--renaming fields for the money_line type
+renameFields "homebet" = "home"
+renameFields "awaybet" = "away"
 renameFields other = other
 
 --replacing nulls
@@ -48,11 +52,21 @@ instance FromJSON Record where
 instance FromJSON Fighter_Bio where
     parseJSON = genericParseJSON customOptions
 
+instance FromJSON Money_Line where
+    parseJSON = genericParseJSON customOptions
+
+instance FromJSON Num_0 where
+    parseJSON = genericParseJSON customOptions
+
+    
+instance FromJSON Periods
+instance FromJSON Event
+instance FromJSON Events
+
 instance FromJSON FResults
 
 parseResults :: L8.ByteString -> Either String FResults
 parseResults json = eitherDecode json :: Either String FResults
 
-
-
-
+parseEvents :: L8.ByteString -> Either String Events
+parseEvents json = eitherDecode json :: Either String Events

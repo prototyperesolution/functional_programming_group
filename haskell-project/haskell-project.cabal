@@ -38,7 +38,6 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
-    , http-conduit
     , lens ==5.2.3
     , lens-aeson
     , sqlite-simple
@@ -64,7 +63,6 @@ executable haskell-project-exe
     , bytestring
     , containers
     , haskell-project
-    , http-conduit
     , lens ==5.2.3
     , lens-aeson
     , sqlite-simple
@@ -88,7 +86,6 @@ test-suite haskell-project-test
     , bytestring
     , containers
     , haskell-project
-    , http-conduit
     , lens ==5.2.3
     , lens-aeson
     , sqlite-simple

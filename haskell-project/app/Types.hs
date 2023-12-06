@@ -4,10 +4,14 @@
 
 module Types (
     Fighter (..),
-    Event (..),
     Record (..),
     FResults(..),
-    Fighter_Bio(..)
+    Fighter_Bio(..),
+    Money_Line(..),
+    Num_0(..),
+    Periods(..),
+    Event(..),
+    Events(..)
 ) where
 
 import Data.Text (Text)
@@ -44,7 +48,26 @@ data Fighter = Fighter{
     takedown_accuracy :: Maybe Text
 } deriving (Show, Generic)
  
+data Money_Line = Money_Line{
+    homebet :: Float,
+    awaybet :: Float
+} deriving (Show, Generic)
+
+data Num_0 = Num_0{
+    money_line :: Maybe Money_Line
+} deriving (Show, Generic)
+
+data Periods = Periods{
+    num_0 :: Num_0
+} deriving (Show, Generic)
 
 data Event = Event{
-    placeholder :: Text
-}
+    starts :: Text,
+    home :: Text,
+    away :: Text,
+    periods :: Periods
+} deriving (Show, Generic)
+
+data Events = Events{
+    events :: [Event]
+} deriving (Show, Generic)
