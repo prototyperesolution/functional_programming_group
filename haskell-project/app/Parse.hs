@@ -1,12 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Parse (parseResults, parseEvents) where
 
-import Data.List
+---import Data.List
 import Types
 import Data.Aeson
+import Data.Aeson.Types
+import Data.Text (Text)
 import Control.Monad (forM_)
 import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.Text.IO as T
+
 
 --Annoyingly all the keys in the API response are capitalised
 
@@ -41,7 +44,7 @@ renameFields other = other
 customOptions = defaultOptions{
     fieldLabelModifier = renameFields,
     omitNothingFields = True
-}
+    }
 
 instance FromJSON Fighter where
     parseJSON = genericParseJSON customOptions
@@ -53,17 +56,22 @@ instance FromJSON Fighter_Bio where
     parseJSON = genericParseJSON customOptions
 
 instance FromJSON Money_Line where
+    parseJSON Null = return $ Money_Line 0.0 0.0
+    parseJSON (Object obj) = do
+        homeVal <- obj .: "home"
+        awayVal <- obj .: "away"
+        return $ Money_Line homeVal awayVal
+
+instance FromJSON Event where
     parseJSON = genericParseJSON customOptions
 
-instance FromJSON Num_0 where
-    parseJSON = genericParseJSON customOptions
-
-    
 instance FromJSON Periods
-instance FromJSON Event
+instance FromJSON Num_0
+
 instance FromJSON Events
 
 instance FromJSON FResults
+
 
 parseResults :: L8.ByteString -> Either String FResults
 parseResults json = eitherDecode json :: Either String FResults

@@ -29,6 +29,7 @@ dependencies:
 - bytestring
 - lens-aeson
 - containers
+- sqlite-simple
 
 ghc-options:
 - -Wall

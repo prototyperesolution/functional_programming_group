@@ -48,6 +48,7 @@ library
 executable haskell-project-exe
   main-is: Main.hs
   other-modules:
+      Database
       Fetch
       Parse
       Types

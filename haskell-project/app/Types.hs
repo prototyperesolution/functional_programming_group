@@ -47,14 +47,17 @@ data Fighter = Fighter{
     striking_accuracy :: Maybe Text,
     takedown_accuracy :: Maybe Text
 } deriving (Show, Generic)
- 
+
+
+
+
 data Money_Line = Money_Line{
     homebet :: Float,
     awaybet :: Float
 } deriving (Show, Generic)
 
 data Num_0 = Num_0{
-    money_line :: Maybe Money_Line
+    money_line :: Money_Line
 } deriving (Show, Generic)
 
 data Periods = Periods{
