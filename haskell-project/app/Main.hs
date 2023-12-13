@@ -37,7 +37,7 @@ fighter_mode conn = do
   -- finput <- pack <$> getLine
   T.putStrLn "Search for a fighter: "
   finput <- pack <$> getLine
-  listOfFighters <- queryDatabase conn finput
+  listOfFighters <- queryFighterDatabase conn finput
   presentFighterResults conn listOfFighters
   T.putStrLn "For further information on a specific fighter, enter their corresponding number"
   T.putStrLn "To search for a different fighter, press s"
@@ -54,12 +54,20 @@ fighter_mode conn = do
 
 
 
-initialiseDB :: Connection -> IO ()
-initialiseDB conn = do
+initialiseFighterDB :: Connection -> IO ()
+initialiseFighterDB conn = do
   r <- fighter_query $ pack " "
   let x = parseResults r
   let fighters = extractFighterList x
-  populateDatabase conn fighters
+  populateFighterDatabase conn fighters
+
+
+initialiseEventDB :: Connection -> Connection -> IO ()
+initialiseEventDB eventConn fighterConn = do
+  r <- event_query
+  let x = parseEvents r
+  let events = extractEventList x
+  populateEventDatabase eventConn fighterConn events
 
 presentSingleFighter :: Int -> [Fighter] -> IO ()
 presentSingleFighter x list =
@@ -75,31 +83,42 @@ presentSingleFighter x list =
 				T.putStrLn "Invalid selection. Returning to main menu"
 				main
 		    else do
-		    	let curr_fighter = (list !! x)
+		    	let curr_fighter = (list !! (x-1))
 		    	T.putStrLn ("Name: " <> (name curr_fighter))
 		    	T.putStrLn ("Nickname: " <> (nickname curr_fighter))
 		    	case division curr_fighter of
 		    		Just x -> T.putStrLn ("Division: "<> x)
+		    		_ -> T.putStrLn(" ")
 		    	case wins (record curr_fighter) of
 		    		Just x -> T.putStrLn ("Wins: "<> x)
+		    		_ -> T.putStrLn(" ")
 		    	case losses (record curr_fighter) of
 		    		Just x -> T.putStrLn ("Losses: "<> x)
+		    		_ -> T.putStrLn(" ")
 		    	case draws (record curr_fighter) of
 		    		Just x -> T.putStrLn ("Draws: "<> x)
+		    		_ -> T.putStrLn(" ")
 		    	case status (bio curr_fighter) of
-		    		Just x -> T.putStrLn ("Active: "<> x)
+		    		Just x -> T.putStrLn ("Status: "<> x)
+		    		_ -> T.putStrLn(" ")
 		    	case strikes_landed curr_fighter of
 		    		Just x -> T.putStrLn ("Significant Strikes Landed: "<> x)
+		    		_ -> T.putStrLn(" ")
 		    	case strikes_attempted curr_fighter of
 		    		Just x -> T.putStrLn ("Strikes Attempted: "<> x)
+		    		_ -> T.putStrLn(" ")
 		    	case takedowns_landed curr_fighter of
 		    		Just x -> T.putStrLn ("Takedowns Landed: "<> x)
+		    		_ -> T.putStrLn(" ")
 		    	case takedowns_attempted curr_fighter of
 		    		Just x -> T.putStrLn ("Takedowns Attempted: "<> x)
+		    		_ -> T.putStrLn(" ")
 		    	case striking_accuracy curr_fighter of
 		    		Just x -> T.putStrLn ("Striking Accuracy: "<> x)
+		    		_ -> T.putStrLn(" ")
 		    	case takedown_accuracy curr_fighter of
 		    		Just x -> T.putStrLn ("Takedown Accuracy: "<> x)
+		    		_ -> T.putStrLn(" ")
 		    	T.putStrLn ("Returning to main menu")
 		    	main
 
@@ -120,10 +139,19 @@ presentFighterResults conn fighters = do
 
 main :: IO ()
 main = do
-  conn <- dbConnection
-  exists <- tableExists conn "fighters"
-  if not exists then initialiseDB conn else T.putStrLn("")
+  fighterConn <- dbConnection "fighters.db"
+  eventConn <- dbConnection "events.db"
+  fightersExists <- tableExists fighterConn "fighters"
+  eventsExists <- tableExists eventConn "events"
+  if not fightersExists then initialiseFighterDB fighterConn else T.putStrLn("")
+  if not eventsExists then initialiseEventDB eventConn fighterConn else T.putStrLn("")
   T.putStrLn "Welcome to Group 26 MMA prediction and gambling advice"
-  fighter_mode conn
-  close conn
+  T.putStrLn "Select from one of the following options: \n 1. Fighter Info Search \n 2. Upcoming Events and Odds"
+  minput <- getLine
+  case minput of
+  	"1" -> fighter_mode fighterConn
+  	--"2" -> event_mode eventConn
+  	_ -> main
+  close fighterConn
+  close eventConn
 

@@ -6,8 +6,10 @@ module Database where
 import Database.SQLite.Simple
 import Database.SQLite.Simple.ToRow
 import Database.SQLite.Simple.FromRow
+import Database.SQLite.Simple.FromField
 import Database.SQLite.Simple.ToField (toField)
-import Data.Text
+import Control.Monad (forM_)
+import Data.Text (Text)
 import Types
 
 instance ToRow Fighter where
@@ -28,7 +30,8 @@ instance ToRow Fighter where
 
 instance ToRow Event where
     toRow f =
-        [ toField (home f)
+        [ toField (starts f)
+        , toField (home f)
         , toField (away f)
         , toField (homebet $ money_line $ num_0 $ periods f)
         , toField (awaybet $ money_line $ num_0 $ periods f)
@@ -42,10 +45,9 @@ instance FromRow Event where
 instance FromRow Fighter where
     fromRow = Fighter <$> field <*> field <*> field <*> (Record <$> field <*> field <*> field) <*> (Fighter_Bio <$> field) <*> field <*> field <*> field <*> field <*> field <*> field
 
-
-dbConnection :: IO Connection
-dbConnection = do
-    conn <- open "fighters.db"
+dbConnection :: String -> IO Connection
+dbConnection target = do
+    conn <- open target
     return conn
 
 
@@ -56,8 +58,8 @@ tableExists conn tableName = do
     [_] -> return True
     _ -> return False
 
-populateDatabase :: Connection -> [Fighter] -> IO()
-populateDatabase conn fighters = do
+populateFighterDatabase :: Connection -> [Fighter] -> IO()
+populateFighterDatabase conn fighters = do
     execute_ conn "CREATE TABLE IF NOT EXISTS fighters (\
         \id INTEGER PRIMARY KEY AUTOINCREMENT\
         \, name TEXT NOT NULL\
@@ -73,17 +75,49 @@ populateDatabase conn fighters = do
         \, striking_accuracy TEXT\
         \, takedown_accuracy TEXT\
         \)"
-    let query = "INSERT INTO fighters (\
+    let insert = "INSERT INTO fighters (\
         \name, nickname, division, record_wins\
         \, record_losses, record_draws, status\
         \, strikes_landed, strikes_attempted\
         \, takedowns_landed, takedowns_attempted\
         \, striking_accuracy, takedown_accuracy\
         \) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" :: Query
-    executeMany conn query fighters
+    executeMany conn insert fighters
 
-queryDatabase :: Connection -> Text -> IO [Fighter]
-queryDatabase conn fighterName = do
+
+
+populateEventDatabase :: Connection -> Connection -> [Event] -> IO()
+populateEventDatabase eventConn fighterConn events = do
+    execute_ eventConn "CREATE TABLE IF NOT EXISTS events (\
+        \id INTEGER PRIMARY KEY AUTOINCREMENT\
+        \, starts TEXT NOT NULL\
+        \, fighter_1 TEXT\
+        \, fighter_2 TEXT\
+        \, fighter_1_odds TEXT NOT NULL\
+        \, fighter_2_odds TEXT NOT NULL\
+        \, fighter_1_fk INTEGER\
+        \, fighter_2_fk INTEGER\
+        \)"
+    let insert = "INSERT INTO events (\
+        \starts, fighter_1, fighter_2,\
+        \fighter_1_odds, fighter_2_odds\
+        \) VALUES (?, ?, ?, ?, ?)" :: Query
+    executeMany eventConn insert events
+    ---populating the foreign keys
+    let nums = [1.. length events]
+    forM_ (zip events nums) $ \(event, eventNum) -> do
+        fighter1fk <- query fighterConn "SELECT id FROM fighters WHERE name LIKE ?" (Only $ "%" <>(home event)<> "%") :: IO [Only Int]
+        fighter2fk <- query fighterConn "SELECT id FROM fighters WHERE name LIKE ?" (Only $ "%" <>(away event)<> "%") :: IO [Only Int]
+        case fighter1fk of
+            [Only id1] -> executeNamed eventConn "UPDATE events SET fighter_1_fk = :val WHERE id = :id" [":val" := id1, ":id" := eventNum]
+            _ -> executeNamed eventConn "UPDATE events SET fighter_1_fk = 10 WHERE id = :id" [":id" := eventNum]
+        case fighter2fk of
+            [Only id2] -> executeNamed eventConn "UPDATE events SET fighter_2_fk = :val WHERE id = :id" [":val" := id2, ":id" := eventNum]
+            _ -> executeNamed eventConn "UPDATE events SET fighter_2_fk = 10 WHERE id = :id" [":id" := eventNum]
+
+
+queryFighterDatabase :: Connection -> Text -> IO [Fighter]
+queryFighterDatabase conn fighterName = do
     queryedFighter <- query conn "SELECT name, nickname, division, record_wins, \
                                 \record_losses, record_draws, status, strikes_landed, \
                                 \strikes_attempted, takedowns_landed, takedowns_attempted, \
