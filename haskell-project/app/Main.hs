@@ -7,10 +7,12 @@ import qualified Control.Lens.Internal.Deque as T
 import Control.Monad (forM_)
 import Data.Aeson (Value)
 import Data.Aeson.Lens (key)
+import Data.Char
 import qualified Data.ByteString.Lazy.Char8 as L8
 import Data.List
 import qualified Data.Map as Map
-import Data.Text (Text, pack)
+import Data.Text (Text, pack, unpack)
+import Data.Text.Read
 import qualified Data.Text.IO as T
 import Fetch
 import Network.Wreq
@@ -113,14 +115,14 @@ presentEvent x events f1k f2k conn =
 				presentSingleFighter fighter1
 				presentSingleFighter fighter2
 
-				let results = (compareFighters fighter1 fighter2) !! 0
-				T.putStrLn (pack(show(results)))
-				case ((record fighter1) > (record fighter2)) of
-					True -> do
-						T.putStrLn("Based on this information, we calculate that "<>(name fighter1)<>" will win")
-					False -> do
-						T.putStrLn("Based on this information, we calculate that "<>(name fighter2)<>" will win")
+				let results = compareFighters fighter1 fighter2
+				let f1wc = (length $ filter (==Just True) results)
+				let f2wc = (length $ filter (==Just False) results)
+				T.putStrLn("Based on the information available, we calculate these odds of winning")
+				T.putStrLn((name fighter1) <>": "<> pack (show f1wc))
+				T.putStrLn((name fighter2) <>": "<> pack (show f2wc))
 				main
+
 
 presentSingleFighter :: Fighter -> IO ()
 presentSingleFighter curr_fighter = do
@@ -177,7 +179,29 @@ locateFighter x list =
 		    	presentSingleFighter curr_fighter
 		    	T.putStrLn "Returning to main menu"
 		    	main
-		    	
+
+compareFighters :: Fighter -> Fighter -> [Maybe Bool]
+compareFighters fighter1 fighter2 =
+	[compareAttributes (strikes_landed fighter1) (strikes_landed fighter2),
+	compareAttributes (takedowns_landed fighter1) (takedowns_landed fighter2),
+	compareAttributes (striking_accuracy fighter1) (striking_accuracy fighter2),
+	compareAttributes (takedown_accuracy fighter1) (takedown_accuracy fighter2)]
+
+compareAttributes :: Maybe Text -> Maybe Text -> Maybe Bool
+compareAttributes att1 att2 =
+	case att1 of
+		Just x ->
+			case (decimal x) of
+				Right (num1, _) ->
+					case att2 of
+						Just y ->
+							case (decimal y) of
+								Right (num2, _) ->
+									if (num1 > num2) then (Just True) else (Just False)
+								Left _ -> Nothing
+						Nothing -> Nothing
+				Left _ -> Nothing
+		Nothing -> Nothing
 
 presentFighterResults :: Connection -> [Fighter] -> IO ()
 presentFighterResults conn fighters = do
