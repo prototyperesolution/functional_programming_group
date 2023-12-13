@@ -106,18 +106,20 @@ presentEvent x events f1k f2k conn =
 				T.putStrLn((away curr_event) <> ": " <> pack (show (awaybet (money_line (num_0 (periods curr_event))))))
 				T.putStrLn("\n")
 				T.putStrLn("Date and Time: " <> (starts curr_event))
-				fighter1 <- fkFighterDatabase conn (fromOnly (f1k !! (x-1)))
-				fighter2 <- fkFighterDatabase conn (fromOnly (f2k !! (x-1)))
-				case fighter1 of
-					[f1] -> presentSingleFighter f1
-					_ -> do 
-						T.putStrLn "fighter not recognised. Returning to main menu"
-						main
-				case fighter2 of
-					[f2] -> presentSingleFighter f2
-					_ -> do
-						T.putStrLn "fighter not recognised. Returning to main menu"
-						main
+				fighter1list <- (fkFighterDatabase conn (fromOnly (f1k !! (x-1))))
+				fighter2list <- (fkFighterDatabase conn (fromOnly (f2k !! (x-1))))
+				let fighter1 = (fighter1list !! 0)
+				let fighter2 = (fighter2list !! 0)
+				presentSingleFighter fighter1
+				presentSingleFighter fighter2
+
+				let results = (compareFighters fighter1 fighter2) !! 0
+				T.putStrLn (pack(show(results)))
+				case ((record fighter1) > (record fighter2)) of
+					True -> do
+						T.putStrLn("Based on this information, we calculate that "<>(name fighter1)<>" will win")
+					False -> do
+						T.putStrLn("Based on this information, we calculate that "<>(name fighter2)<>" will win")
 				main
 
 presentSingleFighter :: Fighter -> IO ()
@@ -128,13 +130,13 @@ presentSingleFighter curr_fighter = do
 		Just x -> T.putStrLn ("Division: "<> x)
 		_ -> T.putStrLn(" ")
 	case wins (record curr_fighter) of
-		Just x -> T.putStrLn ("Wins: "<> x)
+		Just x -> T.putStrLn ("Wins: "<> pack(show(x)))
 		_ -> T.putStrLn(" ")
 	case losses (record curr_fighter) of
-		Just x -> T.putStrLn ("Losses: "<> x)
+		Just x -> T.putStrLn ("Losses: "<> pack(show(x)))
 		_ -> T.putStrLn(" ")
 	case draws (record curr_fighter) of
-		Just x -> T.putStrLn ("Draws: "<> x)
+		Just x -> T.putStrLn ("Draws: "<> pack(show(x)))
 		_ -> T.putStrLn(" ")
 	case status (bio curr_fighter) of
 		Just x -> T.putStrLn ("Status: "<> x)

@@ -27,12 +27,10 @@ data Fighter_Bio = Fighter_Bio{
 } deriving (Show, Generic)
 
 data Record = Record{
-    wins :: Maybe Text,
-    losses :: Maybe Text,
-    draws :: Maybe Text
-} deriving (Show, Generic)
-
-
+    wins :: Maybe Int,
+    losses :: Maybe Int,
+    draws :: Maybe Int
+} deriving (Show, Generic, Eq, Ord)
 
 data Fighter = Fighter{
     name :: Text,
@@ -47,9 +45,6 @@ data Fighter = Fighter{
     striking_accuracy :: Maybe Text,
     takedown_accuracy :: Maybe Text
 } deriving (Show, Generic)
-
-
-
 
 data Money_Line = Money_Line{
     homebet :: Float,

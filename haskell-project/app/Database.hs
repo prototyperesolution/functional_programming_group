@@ -65,9 +65,9 @@ populateFighterDatabase conn fighters = do
         \, name TEXT NOT NULL\
         \, nickname TEXT\
         \, division TEXT\
-        \, record_wins TEXT NOT NULL\
-        \, record_losses TEXT NOT NULL\
-        \, record_draws TEXT NOT NULL\
+        \, record_wins INTEGER\
+        \, record_losses INTEGER\
+        \, record_draws INTEGER\
         \, status TEXT, strikes_landed TEXT\
         \, strikes_attempted TEXT\
         \, takedowns_landed TEXT\

@@ -7,6 +7,7 @@ import Data.Aeson
 import Data.Aeson.Types
 import Data.Text (Text)
 import Control.Monad (forM_)
+import Text.Read
 import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.Text.IO as T
 
@@ -50,7 +51,15 @@ instance FromJSON Fighter where
     parseJSON = genericParseJSON customOptions
 
 instance FromJSON Record where
-    parseJSON = genericParseJSON customOptions
+    parseJSON (Object obj) = do
+        winVal <- obj .: "Wins"
+        lossVal <- obj .: "Losses"
+        drawsVal <- obj .: "Draws"
+        let winNum = (readMaybe winVal :: Maybe Int)
+        let lossNum = (readMaybe lossVal :: Maybe Int)
+        let drawsNum = (readMaybe drawsVal :: Maybe Int)
+        return $ Record winNum lossNum drawsNum
+
 
 instance FromJSON Fighter_Bio where
     parseJSON = genericParseJSON customOptions
