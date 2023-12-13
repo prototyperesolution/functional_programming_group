@@ -93,8 +93,8 @@ populateEventDatabase eventConn fighterConn events = do
         \, starts TEXT NOT NULL\
         \, fighter_1 TEXT\
         \, fighter_2 TEXT\
-        \, fighter_1_odds TEXT NOT NULL\
-        \, fighter_2_odds TEXT NOT NULL\
+        \, fighter_1_odds FLOAT NOT NULL\
+        \, fighter_2_odds FLOAT NOT NULL\
         \, fighter_1_fk INTEGER\
         \, fighter_2_fk INTEGER\
         \)"
@@ -123,3 +123,18 @@ queryFighterDatabase conn fighterName = do
                                 \strikes_attempted, takedowns_landed, takedowns_attempted, \
                                 \striking_accuracy, takedown_accuracy FROM fighters WHERE name LIKE ?" (Only $ "%" <>fighterName<> "%")
     return queryedFighter
+
+fkFighterDatabase :: Connection -> Int -> IO [Fighter]
+fkFighterDatabase conn fk = do
+    fighter <- queryNamed conn "SELECT name, nickname, division, record_wins, \
+                                \record_losses, record_draws, status, strikes_landed, \
+                                \strikes_attempted, takedowns_landed, takedowns_attempted, \
+                                \striking_accuracy, takedown_accuracy FROM fighters WHERE id = :id" [":id":=fk]
+    return fighter
+
+queryEventDatabase :: Connection -> IO ([Event], [Only Int], [Only Int])
+queryEventDatabase conn = do
+    queryedEvent <- query_ conn "SELECT starts, fighter_1, fighter_2, fighter_1_odds, fighter_2_odds FROM events"
+    fighter1fk <- query_ conn "SELECT fighter_1_fk FROM events" :: IO [Only Int]
+    fighter2fk <- query_ conn "SELECT fighter_2_fk FROM events" :: IO [Only Int]
+    return (queryedEvent, fighter1fk, fighter2fk)     

@@ -44,7 +44,7 @@ fighter_mode conn = do
   T.putStrLn "To return to the main menu, press \'m\'"
   minput <- getLine
   case (readMaybe minput :: Maybe Int) of
-  	Just x -> presentSingleFighter x listOfFighters
+  	Just x -> locateFighter x listOfFighters
   	Nothing -> case minput of
   		"m" -> main
   		"s" -> fighter_mode conn
@@ -52,7 +52,19 @@ fighter_mode conn = do
   			T.putStrLn "Unrecognised input. Returning to main menu"
   			main
 
-
+event_mode :: Connection -> Connection -> IO()
+event_mode eventConn fighterConn = do
+	(queryedEvent, fighter1fk, fighter2fk) <- queryEventDatabase eventConn
+	let nums = [1..length queryedEvent]
+	forM_ (zip queryedEvent nums) $ \(event,eventNum) -> do
+		T.putStr(pack (show eventNum) <> " " <> (home event) <> " VS " <> (away event))
+		T.putStrLn("\n")
+	T.putStrLn "For further information on one of these events, enter the corresponding number"
+	T.putStrLn "Or, to return to the main menu, press any other key"
+	einput <- getLine
+	case (readMaybe einput :: Maybe Int) of
+		Just x -> presentEvent x queryedEvent fighter1fk fighter2fk fighterConn
+		Nothing -> main
 
 initialiseFighterDB :: Connection -> IO ()
 initialiseFighterDB conn = do
@@ -69,58 +81,101 @@ initialiseEventDB eventConn fighterConn = do
   let events = extractEventList x
   populateEventDatabase eventConn fighterConn events
 
-presentSingleFighter :: Int -> [Fighter] -> IO ()
-presentSingleFighter x list =
+
+invalidSelection :: IO()
+invalidSelection = do
+	T.putStrLn "Invalid selection. Returning to main menu"
+	main
+
+presentEvent :: Int -> [Event] -> [Only Int] -> [Only Int] -> Connection -> IO()
+presentEvent x events f1k f2k conn =
+	if length events <= 0 then do
+		T.putStrLn "No events scheduled. Returning to main menu"
+		main
+	else
+		if x > length events then do
+			invalidSelection
+		else
+			if x <= 0 then do
+				invalidSelection
+			else do
+				let curr_event = (events !! (x-1))
+				T.putStrLn((home curr_event) <> " VS " <> (away curr_event) <> "\n")
+				T.putStrLn("Odds (via Pinnacle Sports):")
+				T.putStrLn((home curr_event) <> ": " <> pack (show (homebet (money_line (num_0 (periods curr_event))))))
+				T.putStrLn((away curr_event) <> ": " <> pack (show (awaybet (money_line (num_0 (periods curr_event))))))
+				T.putStrLn("\n")
+				T.putStrLn("Date and Time: " <> (starts curr_event))
+				fighter1 <- fkFighterDatabase conn (fromOnly (f1k !! (x-1)))
+				fighter2 <- fkFighterDatabase conn (fromOnly (f2k !! (x-1)))
+				case fighter1 of
+					[f1] -> presentSingleFighter f1
+					_ -> do 
+						T.putStrLn "fighter not recognised. Returning to main menu"
+						main
+				case fighter2 of
+					[f2] -> presentSingleFighter f2
+					_ -> do
+						T.putStrLn "fighter not recognised. Returning to main menu"
+						main
+				main
+
+presentSingleFighter :: Fighter -> IO ()
+presentSingleFighter curr_fighter = do
+	T.putStrLn ("Name: " <> (name curr_fighter))
+	T.putStrLn ("Nickname: " <> (nickname curr_fighter))
+	case division curr_fighter of
+		Just x -> T.putStrLn ("Division: "<> x)
+		_ -> T.putStrLn(" ")
+	case wins (record curr_fighter) of
+		Just x -> T.putStrLn ("Wins: "<> x)
+		_ -> T.putStrLn(" ")
+	case losses (record curr_fighter) of
+		Just x -> T.putStrLn ("Losses: "<> x)
+		_ -> T.putStrLn(" ")
+	case draws (record curr_fighter) of
+		Just x -> T.putStrLn ("Draws: "<> x)
+		_ -> T.putStrLn(" ")
+	case status (bio curr_fighter) of
+		Just x -> T.putStrLn ("Status: "<> x)
+		_ -> T.putStrLn(" ")
+	case strikes_landed curr_fighter of
+		Just x -> T.putStrLn ("Significant Strikes Landed: "<> x)
+		_ -> T.putStrLn(" ")
+	case strikes_attempted curr_fighter of
+		Just x -> T.putStrLn ("Strikes Attempted: "<> x)
+		_ -> T.putStrLn(" ")
+	case takedowns_landed curr_fighter of
+		Just x -> T.putStrLn ("Takedowns Landed: "<> x)
+		_ -> T.putStrLn(" ")
+	case takedowns_attempted curr_fighter of
+		Just x -> T.putStrLn ("Takedowns Attempted: "<> x)
+		_ -> T.putStrLn(" ")
+	case striking_accuracy curr_fighter of
+		Just x -> T.putStrLn ("Striking Accuracy: "<> x)
+		_ -> T.putStrLn(" ")
+	case takedown_accuracy curr_fighter of
+		Just x -> T.putStrLn ("Takedown Accuracy: "<> x)
+		_ -> T.putStrLn(" ")
+	T.putStrLn("\n")
+
+locateFighter :: Int -> [Fighter] -> IO ()
+locateFighter x list =
     if length list <= 0 then do
 		T.putStrLn "No fighters selected. Returning to main menu"
 		main
 	else
     	if x > length list then do 
-			T.putStrLn "Invalid selection. Returning to main menu"
-			main
+			invalidSelection
 		else
 		    if x <= 0 then do
-				T.putStrLn "Invalid selection. Returning to main menu"
-				main
+				invalidSelection
 		    else do
 		    	let curr_fighter = (list !! (x-1))
-		    	T.putStrLn ("Name: " <> (name curr_fighter))
-		    	T.putStrLn ("Nickname: " <> (nickname curr_fighter))
-		    	case division curr_fighter of
-		    		Just x -> T.putStrLn ("Division: "<> x)
-		    		_ -> T.putStrLn(" ")
-		    	case wins (record curr_fighter) of
-		    		Just x -> T.putStrLn ("Wins: "<> x)
-		    		_ -> T.putStrLn(" ")
-		    	case losses (record curr_fighter) of
-		    		Just x -> T.putStrLn ("Losses: "<> x)
-		    		_ -> T.putStrLn(" ")
-		    	case draws (record curr_fighter) of
-		    		Just x -> T.putStrLn ("Draws: "<> x)
-		    		_ -> T.putStrLn(" ")
-		    	case status (bio curr_fighter) of
-		    		Just x -> T.putStrLn ("Status: "<> x)
-		    		_ -> T.putStrLn(" ")
-		    	case strikes_landed curr_fighter of
-		    		Just x -> T.putStrLn ("Significant Strikes Landed: "<> x)
-		    		_ -> T.putStrLn(" ")
-		    	case strikes_attempted curr_fighter of
-		    		Just x -> T.putStrLn ("Strikes Attempted: "<> x)
-		    		_ -> T.putStrLn(" ")
-		    	case takedowns_landed curr_fighter of
-		    		Just x -> T.putStrLn ("Takedowns Landed: "<> x)
-		    		_ -> T.putStrLn(" ")
-		    	case takedowns_attempted curr_fighter of
-		    		Just x -> T.putStrLn ("Takedowns Attempted: "<> x)
-		    		_ -> T.putStrLn(" ")
-		    	case striking_accuracy curr_fighter of
-		    		Just x -> T.putStrLn ("Striking Accuracy: "<> x)
-		    		_ -> T.putStrLn(" ")
-		    	case takedown_accuracy curr_fighter of
-		    		Just x -> T.putStrLn ("Takedown Accuracy: "<> x)
-		    		_ -> T.putStrLn(" ")
-		    	T.putStrLn ("Returning to main menu")
+		    	presentSingleFighter curr_fighter
+		    	T.putStrLn "Returning to main menu"
 		    	main
+		    	
 
 presentFighterResults :: Connection -> [Fighter] -> IO ()
 presentFighterResults conn fighters = do
@@ -150,7 +205,7 @@ main = do
   minput <- getLine
   case minput of
   	"1" -> fighter_mode fighterConn
-  	--"2" -> event_mode eventConn
+  	"2" -> event_mode eventConn fighterConn
   	_ -> main
   close fighterConn
   close eventConn
