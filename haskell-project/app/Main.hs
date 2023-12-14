@@ -23,20 +23,19 @@ import Database
 import Text.Read
 import GHC.Generics (Constructor(conName))
 
--- testing branch
-
+-- | Makes the results of parse into a list of fighters
 extractFighterList :: Either String FResults -> [Fighter]
 extractFighterList (Left _) = []
 extractFighterList (Right res) = results res
 
+-- | Makes the results of parse into a list of events
 extractEventList :: Either String Events -> [Event]
 extractEventList (Left _) = []
 extractEventList (Right res) = events res
 
+-- | Given connection to the fighter database, presents an abridged list of all fighters which users can select from
 fighter_mode :: Connection -> IO ()
 fighter_mode conn = do
-  -- T.putStrLn "Enter fighter name: "
-  -- finput <- pack <$> getLine
   T.putStrLn "Search for a fighter: "
   finput <- pack <$> getLine
   listOfFighters <- queryFighterDatabase conn finput
@@ -54,6 +53,8 @@ fighter_mode conn = do
   			T.putStrLn "Unrecognised input. Returning to main menu"
   			main
 
+-- | Given connection to the event database and connection to the fighter database, presents an abridged list
+-- of all upcoming events which users can then select from
 event_mode :: Connection -> Connection -> IO()
 event_mode eventConn fighterConn = do
 	(queryedEvent, fighter1fk, fighter2fk) <- queryEventDatabase eventConn
@@ -68,6 +69,8 @@ event_mode eventConn fighterConn = do
 		Just x -> presentEvent x queryedEvent fighter1fk fighter2fk fighterConn
 		Nothing -> main
 
+
+-- | Given a connection to the fighter database, populates it with information gathered from online
 initialiseFighterDB :: Connection -> IO ()
 initialiseFighterDB conn = do
   r <- fighter_query $ pack " "
@@ -76,6 +79,8 @@ initialiseFighterDB conn = do
   populateFighterDatabase conn fighters
 
 
+-- | Given a connection to the event db and the fighter db, creates the event table with the foreign keys
+-- of the relevant fighters at each event. Gets information from online
 initialiseEventDB :: Connection -> Connection -> IO ()
 initialiseEventDB eventConn fighterConn = do
   r <- event_query
@@ -83,12 +88,15 @@ initialiseEventDB eventConn fighterConn = do
   let events = extractEventList x
   populateEventDatabase eventConn fighterConn events
 
-
+-- | function to be called to handle errors in parts of the menu where users can select from a list
 invalidSelection :: IO()
 invalidSelection = do
 	T.putStrLn "Invalid selection. Returning to main menu"
 	main
 
+-- | Given an integer (index), a list of event objects, a list of fighter foreign keys,
+-- and a connection to the fighter database, returns detailed information about the event.
+-- calls other functions to provide detailed information about both fighters, and predict who will win
 presentEvent :: Int -> [Event] -> [Only Int] -> [Only Int] -> Connection -> IO()
 presentEvent x events f1k f2k conn =
 	if length events <= 0 then do
@@ -124,6 +132,7 @@ presentEvent x events f1k f2k conn =
 				main
 
 
+-- | Given a single fighter, gives a detailed breakdown on their statistics
 presentSingleFighter :: Fighter -> IO ()
 presentSingleFighter curr_fighter = do
 	T.putStrLn ("Name: " <> (name curr_fighter))
@@ -163,6 +172,8 @@ presentSingleFighter curr_fighter = do
 		_ -> T.putStrLn(" ")
 	T.putStrLn("\n")
 
+-- | Given a list of fighters and an integer, returns the fighter from the list at the position of the given
+-- integer. If the input is invalid, handles errors
 locateFighter :: Int -> [Fighter] -> IO ()
 locateFighter x list =
     if length list <= 0 then do
@@ -180,6 +191,8 @@ locateFighter x list =
 		    	T.putStrLn "Returning to main menu"
 		    	main
 
+-- | Compares fighters by using the compareAttributes function on several key statistics of the fighter's
+-- performance
 compareFighters :: Fighter -> Fighter -> [Maybe Bool]
 compareFighters fighter1 fighter2 =
 	[compareAttributes (strikes_landed fighter1) (strikes_landed fighter2),
@@ -187,6 +200,9 @@ compareFighters fighter1 fighter2 =
 	compareAttributes (striking_accuracy fighter1) (striking_accuracy fighter2),
 	compareAttributes (takedown_accuracy fighter1) (takedown_accuracy fighter2)]
 
+-- | Compares individual attributes of fighters, accounting for the fact they may be Nothing values,
+-- or text values, or a mix of text and integer values (such as "10%"). Returns True if fighter 1
+-- is better than fighter 2 at a given attribute, and false otherwise
 compareAttributes :: Maybe Text -> Maybe Text -> Maybe Bool
 compareAttributes att1 att2 =
 	case att1 of
@@ -203,6 +219,7 @@ compareAttributes att1 att2 =
 				Left _ -> Nothing
 		Nothing -> Nothing
 
+-- | Shows an abridged list of fighters (only showing name and nickname) from a list of fighters 
 presentFighterResults :: Connection -> [Fighter] -> IO ()
 presentFighterResults conn fighters = do
     case fighters of 
@@ -218,6 +235,8 @@ presentFighterResults conn fighters = do
 		            _ -> T.putStr (" Nickname: " <> (nickname x))
 		        T.putStrLn "\n"
 
+-- | The main function, which creates and populates databases and gives the users the main menu
+-- allowing them to go to either fighter mode or event mode
 main :: IO ()
 main = do
   fighterConn <- dbConnection "fighters.db"

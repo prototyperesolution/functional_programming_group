@@ -12,6 +12,7 @@ import Parse
 import qualified Data.ByteString.Lazy.Char8 as L8
 
 
+-- | fetches information from the MMA-Stats API about fighters
 fighter_query :: Text -> IO L8.ByteString
 fighter_query name = do
 		let opts = defaults & header "X-RapidAPI-Key" .~ ["f0dac3a241mshf7bf42b2ad9f6dep127712jsnf06c8417ce4d"]
@@ -21,7 +22,7 @@ fighter_query name = do
 		pure (r^.responseBody)
 
 
---returns all upcoming UFC events
+-- | uses the Pinnacle Odds API to get all information about upcoming fights and gambling odds
 event_query :: IO L8.ByteString
 event_query = do
 	let opts = defaults & header "X-RapidAPI-Key" .~ ["f0dac3a241mshf7bf42b2ad9f6dep127712jsnf06c8417ce4d"]

@@ -14,7 +14,7 @@ import qualified Data.Text.IO as T
 
 --Annoyingly all the keys in the API response are capitalised
 
---renaming the fields for the fighter type
+-- |renaming the fields for the different types
 renameFields "name" = "Name"
 renameFields "nickname" = "Nickname"
 renameFields "division" = "Division Title"
@@ -47,9 +47,11 @@ customOptions = defaultOptions{
     omitNothingFields = True
     }
 
+-- |parsing Fighter objects
 instance FromJSON Fighter where
     parseJSON = genericParseJSON customOptions
 
+-- |parsing Record objects, taking "Maybe Text" values to Maybe Int values
 instance FromJSON Record where
     parseJSON (Object obj) = do
         winVal <- obj .: "Wins"
@@ -60,10 +62,11 @@ instance FromJSON Record where
         let drawsNum = (readMaybe drawsVal :: Maybe Int)
         return $ Record winNum lossNum drawsNum
 
-
+-- |parsing Fighter_Bio objects
 instance FromJSON Fighter_Bio where
     parseJSON = genericParseJSON customOptions
 
+-- |parsing Money_Line objects, with a default Money_Line if the JSON object is null
 instance FromJSON Money_Line where
     parseJSON Null = return $ Money_Line 0.0 0.0
     parseJSON (Object obj) = do
@@ -71,19 +74,20 @@ instance FromJSON Money_Line where
         awayVal <- obj .: "away"
         return $ Money_Line homeVal awayVal
 
+-- | parsing Event objects
 instance FromJSON Event where
     parseJSON = genericParseJSON customOptions
 
 instance FromJSON Periods
 instance FromJSON Num_0
-
 instance FromJSON Events
-
 instance FromJSON FResults
 
 
+-- |Uses eitherDecode to parse fighters into either a list of fighters (FResults) or a string
 parseResults :: L8.ByteString -> Either String FResults
 parseResults json = eitherDecode json :: Either String FResults
 
+-- |Uses eitherDecode to parse Events into either a list of events (Events) or a string
 parseEvents :: L8.ByteString -> Either String Events
 parseEvents json = eitherDecode json :: Either String Events

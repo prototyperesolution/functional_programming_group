@@ -12,6 +12,7 @@ import Control.Monad (forM_)
 import Data.Text (Text)
 import Types
 
+-- | This allows us to insert Fighter objects into the database
 instance ToRow Fighter where
     toRow f = [ toField (name f)
             , toField (nickname f)
@@ -28,6 +29,7 @@ instance ToRow Fighter where
             , toField (takedown_accuracy f)
             ]
 
+-- | This allows us to insert Event objects into the database
 instance ToRow Event where
     toRow f =
         [ toField (starts f)
@@ -37,20 +39,22 @@ instance ToRow Event where
         , toField (awaybet $ money_line $ num_0 $ periods f)
         ]
 
+-- | This takes information from the database and makes it into an Event object
 instance FromRow Event where
     fromRow = Event <$> field <*> field <*> field <*> (Periods <$> (Num_0 <$> (Money_Line <$> field <*> field)))
 
---doing pattern matching cos we have an ID field when we get back the field from the DB
-
+-- | This takes information from the database and makes it into a Fighter object
 instance FromRow Fighter where
     fromRow = Fighter <$> field <*> field <*> field <*> (Record <$> field <*> field <*> field) <*> (Fighter_Bio <$> field) <*> field <*> field <*> field <*> field <*> field <*> field
 
+-- | creates a connection to the database when given a name for the database
 dbConnection :: String -> IO Connection
 dbConnection target = do
     conn <- open target
     return conn
 
 
+-- | given a database connection and a database name, checks whether the corresponding table exists
 tableExists :: Connection -> String -> IO Bool
 tableExists conn tableName = do
   results <- query conn "SELECT name FROM sqlite_master WHERE type='table' AND name=?" (Only tableName) :: IO[Only Text]
@@ -58,6 +62,8 @@ tableExists conn tableName = do
     [_] -> return True
     _ -> return False
 
+
+-- | Given a connection and a list of Fighter objects, inserts all relevant information into the db table
 populateFighterDatabase :: Connection -> [Fighter] -> IO()
 populateFighterDatabase conn fighters = do
     execute_ conn "CREATE TABLE IF NOT EXISTS fighters (\
@@ -86,6 +92,9 @@ populateFighterDatabase conn fighters = do
 
 
 
+-- | Given a connection to the events database and a connection to the events database and a list of events,
+-- inserts all information about the event into the database. Then, once all information is inserted,
+-- cross-references with the fighters table to insert foreign keys into events table
 populateEventDatabase :: Connection -> Connection -> [Event] -> IO()
 populateEventDatabase eventConn fighterConn events = do
     execute_ eventConn "CREATE TABLE IF NOT EXISTS events (\
@@ -103,7 +112,6 @@ populateEventDatabase eventConn fighterConn events = do
         \fighter_1_odds, fighter_2_odds\
         \) VALUES (?, ?, ?, ?, ?)" :: Query
     executeMany eventConn insert events
-    ---populating the foreign keys
     let nums = [1.. length events]
     forM_ (zip events nums) $ \(event, eventNum) -> do
         fighter1fk <- query fighterConn "SELECT id FROM fighters WHERE name LIKE ?" (Only $ "%" <>(home event)<> "%") :: IO [Only Int]
@@ -115,7 +123,8 @@ populateEventDatabase eventConn fighterConn events = do
             [Only id2] -> executeNamed eventConn "UPDATE events SET fighter_2_fk = :val WHERE id = :id" [":val" := id2, ":id" := eventNum]
             _ -> executeNamed eventConn "UPDATE events SET fighter_2_fk = 10 WHERE id = :id" [":id" := eventNum]
 
-
+-- | Given a connection and Text, searches the database for any fighters with names that have a partial match
+-- returns a list of fighters
 queryFighterDatabase :: Connection -> Text -> IO [Fighter]
 queryFighterDatabase conn fighterName = do
     queryedFighter <- query conn "SELECT name, nickname, division, record_wins, \
@@ -124,6 +133,8 @@ queryFighterDatabase conn fighterName = do
                                 \striking_accuracy, takedown_accuracy FROM fighters WHERE name LIKE ?" (Only $ "%" <>fighterName<> "%")
     return queryedFighter
 
+-- | Given a connection and an integer (key), returns a singleton list of 1 fighter where their primary key matches
+-- the supplied foreign key
 fkFighterDatabase :: Connection -> Int -> IO [Fighter]
 fkFighterDatabase conn fk = do
     fighter <- queryNamed conn "SELECT name, nickname, division, record_wins, \
@@ -132,6 +143,8 @@ fkFighterDatabase conn fk = do
                                 \striking_accuracy, takedown_accuracy FROM fighters WHERE id = :id" [":id":=fk]
     return fighter
 
+-- | Given a connection, returns all event objects from the database and all corresponding foreign keys for 
+-- each fighter in each event
 queryEventDatabase :: Connection -> IO ([Event], [Only Int], [Only Int])
 queryEventDatabase conn = do
     queryedEvent <- query_ conn "SELECT starts, fighter_1, fighter_2, fighter_1_odds, fighter_2_odds FROM events"
